@@ -1,11 +1,10 @@
 import os.path
 
 import requests as r
-from jsonpath_ng.ext import parse
 
 API_ENDPOINT = 'http://api.github.com'
 HEADERS = {'Accept': 'application/vnd.github+json'}
-email_expr = parse(f'$[*].commit.author.email')
+
 
 if os.path.exists('SECRET_KEY'):
     with open('SECRET_KEY') as file:

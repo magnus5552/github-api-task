@@ -23,11 +23,22 @@ def get(request: str, params=None, headers=None):
     return response.json()
 
 
-def get_organization_repos(org_name: str):
-    response = get(f'/orgs/{org_name}/repos')
-    return [x['full_name'] for x in response]
+def get_org_repos(org_name: str, page: int):
+    params = {'page': page, 'per_page': 100}
+    return get(f'/orgs/{org_name}/repos', params=params)
 
 
 def get_commits(repo_name: str, page: int):
     params = {'page': page, 'per_page': 100}
     return get(f'/repos/{repo_name}/commits', params=params)
+
+
+def get_all_items(func):
+    returned_count = 100
+    page = 1
+    while returned_count == 100:
+        items = func(page)
+        yield from items
+
+        returned_count = len(items)
+        page += 1

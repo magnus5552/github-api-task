@@ -1,4 +1,5 @@
 import sys
+import time
 from collections import Counter
 
 from github_api import get_commits, get_org_repos, get_all_items, session
@@ -31,5 +32,7 @@ def main():
 
 
 if __name__ == '__main__':
+    start = time.time()
     main()
     session.close()
+    print(f"--- {time.time() - start} seconds ---")

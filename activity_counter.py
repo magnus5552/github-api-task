@@ -1,7 +1,7 @@
 import sys
 from collections import Counter
 
-from github_api import get_commits, get_org_repos, get_all_items
+from github_api import get_commits, get_org_repos, get_all_items, session
 
 
 def get_commits_emails(repo_name: str):
@@ -32,3 +32,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+    session.close()

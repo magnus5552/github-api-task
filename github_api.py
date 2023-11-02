@@ -5,20 +5,19 @@ import requests as r
 API_ENDPOINT = 'http://api.github.com'
 HEADERS = {'Accept': 'application/vnd.github+json'}
 
+session = r.session()
+session.headers.update(HEADERS)
 
 if os.path.exists('SECRET_KEY'):
     with open('SECRET_KEY') as file:
         SECRET_KEY = file.read()
-        HEADERS['Authorization'] = f'Bearer {SECRET_KEY}'
+        session.headers['Authorization'] = f'Bearer {SECRET_KEY}'
 
 
 def get(request: str, params=None, headers=None):
-    prep_headers = HEADERS.copy().update(headers) \
-        if headers is not None \
-        else HEADERS
-    response = r.get(API_ENDPOINT + request,
-                     headers=prep_headers,
-                     params=params)
+    response = session.get(API_ENDPOINT + request,
+                           headers=headers,
+                           params=params)
     response.raise_for_status()
     return response.json()
 

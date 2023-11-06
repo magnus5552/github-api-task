@@ -7,3 +7,8 @@
 ```shell
 python activity_counter.py <organization>
 ```
+
+Включить логирование запросов в консоли --log
+```shell
+python activity_counter.py <organization> --log
+```

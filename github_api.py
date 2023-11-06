@@ -52,13 +52,13 @@ class GithubClient:
         response.raise_for_status()
         return response.json()
 
-    async def get_org_repos(self, org_name: str, page: int):
+    async def get_org_repos(self, organization: str, page: int):
         params = {'page': page, 'per_page': 100}
-        return await self.get(f'/orgs/{org_name}/repos', params=params)
+        return await self.get(f'/orgs/{organization}/repos', params=params)
 
-    async def get_commits(self, repo_name: str, page: int):
+    async def get_commits(self, repo: str, page: int):
         params = {'page': page, 'per_page': 100}
-        return await self.get(f'/repos/{repo_name}/commits', params=params)
+        return await self.get(f'/repos/{repo}/commits', params=params)
 
     async def _wait_for_retry(self, delay):
         self.event.clear()

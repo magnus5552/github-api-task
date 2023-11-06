@@ -1,6 +1,6 @@
 # github-api-task
 
-Асинхронное получение топ пользователей выбранной организации github
+Асинхронное получение топа пользователей для выбранной организации github
 
 ## Usage
 
@@ -11,7 +11,12 @@
 python activity_counter.py <organization>
 ```
 
+Указать количество пользователей -n
+```shell
+python activity_counter.py -n N <organization>
+```
+
 Включить логирование запросов в консоли --log
 ```shell
-python activity_counter.py <organization> --log
+python activity_counter.py --log <organization>
 ```

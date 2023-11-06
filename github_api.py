@@ -1,8 +1,6 @@
 import asyncio
-import functools
 import os.path
 import sys
-import time
 
 import httpx
 
@@ -12,7 +10,9 @@ LOGGING_ENABLED = False
 
 
 def configure_session():
-    session = httpx.AsyncClient(headers=HEADERS)
+    session = httpx.AsyncClient(base_url=API_ENDPOINT,
+                                headers=HEADERS,
+                                event_hooks={'response': [log_response]})
     if os.path.exists('SECRET_KEY'):
         with open('SECRET_KEY') as file:
             secret_key = file.read()
@@ -20,53 +20,50 @@ def configure_session():
     return session
 
 
-def log(func):
-    @functools.wraps(func)
-    async def wrapper(self, *args, **kwargs):
-        if not LOGGING_ENABLED:
-            return await func(self, *args, **kwargs)
+async def log_response(response: httpx.Response):
+    if not LOGGING_ENABLED:
+        return
 
-        start = time.time()
-        try:
-            result = await func(self, *args, **kwargs)
-            print('success', '-', time.time() - start, ':', func.__name__, *args, **kwargs)
-            return result
-        except httpx.HTTPStatusError as e:
-            print('fail', func.__name__, *args, **kwargs, file=sys.stderr)
-            print(e.response.text, file=sys.stderr)
-            raise
+    await response.aread()
 
-    return wrapper
+    elapsed = response.elapsed.total_seconds()
+    if response.is_success:
+
+        print('success', '-', elapsed, ':', response.url)
+        return
+
+    print('fail', '-', elapsed, ':', response.url, file=sys.stderr)
+    print(response.text, file=sys.stderr)
 
 
 class GithubClient:
-
     async def get(self, request: str, params=None, headers=None):
         await self.event.wait()
+        request = self.session.build_request('GET', request,
+                                             headers=headers,
+                                             params=params)
         async with self.semaphore:
-            response = await self.session.get(API_ENDPOINT + request,
-                                              headers=headers,
-                                              params=params)
+            response = await self.session.send(request)
             if 'retry-after' in response.headers:
                 wait_time = int(response.headers['retry-after'])
-                self.event.clear()
-                await asyncio.sleep(wait_time)
-                self.event.set()
-                response = await self.session.get(API_ENDPOINT + request,
-                                                  headers=headers,
-                                                  params=params)
+                await self._wait_for_retry(wait_time)
+                response = await self.session.send(request)
+
         response.raise_for_status()
         return response.json()
 
-    @log
     async def get_org_repos(self, org_name: str, page: int):
         params = {'page': page, 'per_page': 100}
         return await self.get(f'/orgs/{org_name}/repos', params=params)
 
-    @log
     async def get_commits(self, repo_name: str, page: int):
         params = {'page': page, 'per_page': 100}
         return await self.get(f'/repos/{repo_name}/commits', params=params)
+
+    async def _wait_for_retry(self, delay):
+        self.event.clear()
+        await asyncio.sleep(delay)
+        self.event.set()
 
     async def __aenter__(self):
         self.semaphore = asyncio.Semaphore(100)

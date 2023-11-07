@@ -13,7 +13,8 @@ def configure_session():
     session = httpx.AsyncClient(base_url=API_ENDPOINT,
                                 headers=HEADERS,
                                 event_hooks={'response': [log_response]},
-                                timeout=httpx.Timeout(60))
+                                timeout=httpx.Timeout(60, connect=600),
+                                limits=httpx.Limits(max_keepalive_connections=100))
     if os.path.exists('SECRET_KEY'):
         with open('SECRET_KEY', 'r') as file:
             secret_key = file.read().replace('\n', '')
@@ -25,7 +26,7 @@ async def log_response(response: httpx.Response):
     if not LOGGING_ENABLED:
         return
 
-    await response.aread()
+    content = await response.aread()
 
     elapsed = response.elapsed.total_seconds()
     if response.is_success:
@@ -33,7 +34,7 @@ async def log_response(response: httpx.Response):
         return
 
     print('fail', '-', elapsed, ':', response.url, file=sys.stderr)
-    print(response.text, file=sys.stderr)
+    print(content, file=sys.stderr)
 
 
 class GithubClient:
@@ -48,6 +49,9 @@ class GithubClient:
                 wait_time = int(response.headers['retry-after'])
                 await self._wait_for_retry(wait_time)
                 response = await self.session.send(request)
+
+        if response.headers['X-RateLimit-Remaining'] == '0':
+            raise httpx.HTTPError('Исчерпан лимит запросов')
 
         response.raise_for_status()
         return response.json()

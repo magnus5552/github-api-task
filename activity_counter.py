@@ -1,7 +1,6 @@
 import asyncio
 import math
 import re
-import sys
 import time
 from collections import Counter
 from itertools import chain
@@ -25,7 +24,7 @@ async def get_commits_emails_by_page(repo: str,
 
     emails = [x['commit']['author']['email'] for x in commits
               if not x['commit']['message'].startswith('Merge')]
-    return emails
+    return Counter(emails)
 
 
 async def get_commits_emails(repo: str, client: GithubClient):
@@ -33,15 +32,17 @@ async def get_commits_emails(repo: str, client: GithubClient):
         f'https://api.github.com/repos/{repo}/commits', client)
     pages_count = roundup(commits_count)
 
-    limiter = AsyncLimiter(100, 1)
+    limiter = AsyncLimiter(900)
 
     emails_by_pages = [asyncio.ensure_future(
         get_commits_emails_by_page(repo, page, client, limiter))
         for page in range(1, pages_count + 1)]
-    emails = await asyncio.gather(*emails_by_pages)
+    emails_stats = await asyncio.gather(*emails_by_pages)
 
-    emails = chain.from_iterable(emails)
-    return Counter(emails)
+    emails_count = Counter()
+    for emails in emails_stats:
+        emails_count.update(emails)
+    return emails_count
 
 
 async def get_repos_by_page(organization, page, client, progress_bar: tqdm):

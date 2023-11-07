@@ -12,10 +12,11 @@ LOGGING_ENABLED = False
 def configure_session():
     session = httpx.AsyncClient(base_url=API_ENDPOINT,
                                 headers=HEADERS,
-                                event_hooks={'response': [log_response]})
+                                event_hooks={'response': [log_response]},
+                                timeout=httpx.Timeout(60))
     if os.path.exists('SECRET_KEY'):
-        with open('SECRET_KEY') as file:
-            secret_key = file.read()
+        with open('SECRET_KEY', 'r') as file:
+            secret_key = file.read().replace('\n', '')
             session.headers['Authorization'] = f'Bearer {secret_key}'
     return session
 
@@ -28,7 +29,6 @@ async def log_response(response: httpx.Response):
 
     elapsed = response.elapsed.total_seconds()
     if response.is_success:
-
         print('success', '-', elapsed, ':', response.url)
         return
 

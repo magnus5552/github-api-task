@@ -53,6 +53,9 @@ class GithubClient:
         if response.headers['X-RateLimit-Remaining'] == '0':
             raise httpx.HTTPError('Исчерпан лимит запросов')
 
+        if response.status_code == 409:
+            return []
+
         response.raise_for_status()
         return response.json()
 
